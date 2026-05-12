@@ -1,9 +1,12 @@
 #include "buffer_pool.h"
+#include "bank.h"
 
 BufferPool buffer_pool;
 unsigned long buffer_load_count = 0;
 unsigned long buffer_unload_count = 0;
 int buffer_current_occupancy = 0;
+int buffer_peak_usage = 0;
+unsigned long buffer_blocked_ops = 0;
 
 /*
  * Initialize pool.
@@ -24,6 +27,7 @@ void init_buffer_pool(BufferPool* pool) {
     for (int i = 0; i < BUFFER_POOL_SIZE; i++) {
 
         pool->slots[i].account_id = -1;
+        pool->slots[i].data = NULL;
         pool->slots[i].in_use = false;
     }
 }
@@ -34,7 +38,11 @@ void init_buffer_pool(BufferPool* pool) {
 void load_account(BufferPool* pool,
                   int account_id) {
 
-    sem_wait(&pool->empty_slots);
+    /* Count blocked operations when pool is full */
+    if (sem_trywait(&pool->empty_slots) != 0) {
+        buffer_blocked_ops++;
+        sem_wait(&pool->empty_slots);
+    }
 
     pthread_mutex_lock(&pool->pool_lock);
 
@@ -44,8 +52,13 @@ void load_account(BufferPool* pool,
 
             pool->slots[i].in_use = true;
             pool->slots[i].account_id = account_id;
+            pool->slots[i].data = &bank.accounts[account_id];
             buffer_current_occupancy++;
             buffer_load_count++;
+
+            if (buffer_current_occupancy > buffer_peak_usage) {
+                buffer_peak_usage = buffer_current_occupancy;
+            }
 
             break;
         }
@@ -73,6 +86,7 @@ void unload_account(BufferPool* pool,
 
             pool->slots[i].in_use = false;
             pool->slots[i].account_id = -1;
+            pool->slots[i].data = NULL;
             buffer_current_occupancy--;
             buffer_unload_count++;
 

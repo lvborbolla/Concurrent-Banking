@@ -10,6 +10,8 @@ Transaction transactions[MAX_TRANSACTIONS];
 
 int num_transactions = 0;
 
+__thread int current_tx_id = -1;
+
 static Transaction* find_transaction(int tx_id) {
 
     for (int i = 0; i < num_transactions; i++) {
@@ -81,7 +83,10 @@ bool load_transactions(const char* filename) {
 
     while (fgets(line, sizeof(line), file) != NULL) {
 
-        if (line[0] == '\n' || line[0] == '\0') {
+        /* Skip blank lines and comment lines starting with '#' (possibly preceded by whitespace) */
+        char *p = line;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '#' || *p == '\n' || *p == '\0') {
             continue;
         }
 
@@ -189,6 +194,9 @@ void* execute_transaction(void* arg) {
     Transaction* tx = (Transaction*)arg;
     bool loaded_accounts[MAX_ACCOUNTS] = { false };
 
+    /* Set thread-local tx id for logging in lock manager */
+    current_tx_id = tx->tx_id;
+
     wait_until_tick(tx->start_tick);
 
     tx->actual_start = global_tick;
@@ -196,9 +204,45 @@ void* execute_transaction(void* arg) {
     tx->status = TX_RUNNING;
     tx->wait_ticks = tx->actual_start - tx->start_tick;
 
+    /* Print transaction started with first operation summary */
+    if (tx->num_ops > 0) {
+        Operation* first_op = &tx->ops[0];
+
+        switch (first_op->type) {
+            case OP_DEPOSIT:
+                print_log("  T%d started: DEPOSIT account %d amount PHP %d.%02d\n",
+                          tx->tx_id,
+                          first_op->account_id,
+                          first_op->amount_centavos / 100,
+                          first_op->amount_centavos % 100);
+                break;
+            case OP_WITHDRAW:
+                print_log("  T%d started: WITHDRAW account %d amount PHP %d.%02d\n",
+                          tx->tx_id,
+                          first_op->account_id,
+                          first_op->amount_centavos / 100,
+                          first_op->amount_centavos % 100);
+                break;
+            case OP_TRANSFER:
+                print_log("  T%d started: TRANSFER from %d to %d amount PHP %d.%02d\n",
+                          tx->tx_id,
+                          first_op->account_id,
+                          first_op->target_account,
+                          first_op->amount_centavos / 100,
+                          first_op->amount_centavos % 100);
+                break;
+            case OP_BALANCE:
+                print_log("  T%d started: BALANCE account %d\n",
+                          tx->tx_id,
+                          first_op->account_id);
+                break;
+        }
+    }
+
     for (int i = 0; i < tx->num_ops; i++) {
 
         Operation* op = &tx->ops[i];
+        int tick_before = global_tick;
 
         load_account_once(loaded_accounts, op->account_id);
 
@@ -211,6 +255,7 @@ void* execute_transaction(void* arg) {
             case OP_DEPOSIT:
                 deposit(op->account_id,
                         op->amount_centavos);
+                print_log("  T%d completed: DEPOSIT successful\n", tx->tx_id);
                 break;
 
             case OP_WITHDRAW:
@@ -219,8 +264,11 @@ void* execute_transaction(void* arg) {
                               op->amount_centavos)) {
 
                     tx->status = TX_ABORTED;
+                    print_log("  T%d completed: WITHDRAW aborted\n", tx->tx_id);
                     return NULL;
                 }
+
+                print_log("  T%d completed: WITHDRAW successful\n", tx->tx_id);
 
                 break;
 
@@ -231,8 +279,11 @@ void* execute_transaction(void* arg) {
                               op->amount_centavos)) {
 
                     tx->status = TX_ABORTED;
+                    print_log("  T%d completed: TRANSFER aborted\n", tx->tx_id);
                     return NULL;
                 }
+
+                print_log("  T%d completed: TRANSFER successful\n", tx->tx_id);
 
                 break;
 
@@ -240,13 +291,19 @@ void* execute_transaction(void* arg) {
 
                 int balance = get_balance(op->account_id);
 
-                printf("T%d BALANCE: %d\n",
+                printf("T%d: Account %d balance = PHP %d.%02d\n",
                        tx->tx_id,
-                       balance);
+                       op->account_id,
+                       balance / 100,
+                       balance % 100);
+
+                  print_log("  T%d completed: BALANCE printed\n", tx->tx_id);
 
                 break;
             }
         }
+
+        tx->wait_ticks += (global_tick - tick_before);
     }
 
     unload_loaded_accounts(loaded_accounts);

@@ -10,14 +10,18 @@
 /*
  * Buffer slot structure.
  */
+#include "bank.h"
 typedef struct {
     int account_id;
+    Account* data;
+    char payload[256];
     bool in_use;
 } BufferSlot;
 
 /*
  * Buffer pool structure.
  */
+#include "bank.h"
 typedef struct {
     BufferSlot slots[BUFFER_POOL_SIZE];
 

@@ -39,10 +39,23 @@ bool load_accounts(const char* filename) {
         return false;
     }
 
+    char line[256];
     int account_id;
     int balance_centavos;
 
-    while (fscanf(file, "%d %d", &account_id, &balance_centavos) == 2) {
+    while (fgets(line, sizeof(line), file) != NULL) {
+
+        /* Skip blank lines and comment lines starting with '#' (possibly preceded by whitespace) */
+        char *p = line;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '#' || *p == '\n' || *p == '\0') {
+            continue;
+        }
+
+        if (sscanf(line, "%d %d", &account_id, &balance_centavos) != 2) {
+            fclose(file);
+            return false;
+        }
 
         if (account_id < 0 || account_id >= MAX_ACCOUNTS) {
             fclose(file);
