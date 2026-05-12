@@ -2,6 +2,7 @@
 #define TRANSACTION_H
 
 #include <pthread.h>
+#include <stdbool.h>
 
 #define MAX_OPERATIONS 256
 #define MAX_TRANSACTIONS 100

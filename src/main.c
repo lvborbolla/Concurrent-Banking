@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 #include "bank.h"
 #include "transaction.h"
 #include "timer.h"
 #include "buffer_pool.h"
 #include "metrics.h"
+#include "utils.h"
 
 int main(int argc, char* argv[]) {
 
@@ -15,15 +17,47 @@ int main(int argc, char* argv[]) {
 
     init_buffer_pool(&buffer_pool);
 
-    /* TODO:
-     * Parse CLI arguments
-     * Load accounts
-     * Load transactions
-     * Create timer thread
-     * Create transaction threads
-     * Join threads
-     * Print metrics
-     */
+    if (!parse_arguments(argc, argv)) {
+        return 1;
+    }
+
+    if (!load_accounts(accounts_file)) {
+        fprintf(stderr, "Failed to load accounts from %s\n", accounts_file);
+        return 1;
+    }
+
+    if (!load_transactions(trace_file)) {
+        fprintf(stderr, "Failed to load transactions from %s\n", trace_file);
+        return 1;
+    }
+
+    pthread_t timer;
+    pthread_t tx_threads[MAX_TRANSACTIONS];
+
+    if (pthread_create(&timer, NULL, timer_thread, &tick_interval_ms) != 0) {
+        fprintf(stderr, "Failed to start timer thread\n");
+        return 1;
+    }
+
+    for (int i = 0; i < num_transactions; i++) {
+        if (pthread_create(&tx_threads[i], NULL, execute_transaction, &transactions[i]) != 0) {
+            fprintf(stderr, "Failed to start transaction thread %d\n", transactions[i].tx_id);
+            simulation_running = false;
+            pthread_join(timer, NULL);
+            return 1;
+        }
+    }
+
+    for (int i = 0; i < num_transactions; i++) {
+        pthread_join(tx_threads[i], NULL);
+    }
+
+    simulation_running = false;
+    pthread_join(timer, NULL);
+
+    print_metrics();
+    print_buffer_stats();
+    print_all_accounts();
 
     return 0;
 }

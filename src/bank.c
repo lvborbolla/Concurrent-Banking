@@ -5,6 +5,12 @@
 
 Bank bank;
 
+static bool is_valid_account_id(int account_id) {
+
+    return account_id >= 0 && account_id < MAX_ACCOUNTS &&
+           bank.accounts[account_id].account_id == account_id;
+}
+
 /*
  * Initialize bank structures.
  */
@@ -13,6 +19,13 @@ void init_bank(void) {
     bank.num_accounts = 0;
 
     pthread_mutex_init(&bank.bank_lock, NULL);
+
+    for (int i = 0; i < MAX_ACCOUNTS; i++) {
+
+        bank.accounts[i].account_id = -1;
+        bank.accounts[i].balance_centavos = 0;
+        pthread_rwlock_init(&bank.accounts[i].lock, NULL);
+    }
 }
 
 /*
@@ -20,7 +33,28 @@ void init_bank(void) {
  */
 bool load_accounts(const char* filename) {
 
-    /* TODO */
+    FILE* file = fopen(filename, "r");
+
+    if (file == NULL) {
+        return false;
+    }
+
+    int account_id;
+    int balance_centavos;
+
+    while (fscanf(file, "%d %d", &account_id, &balance_centavos) == 2) {
+
+        if (account_id < 0 || account_id >= MAX_ACCOUNTS) {
+            fclose(file);
+            return false;
+        }
+
+        bank.accounts[account_id].account_id = account_id;
+        bank.accounts[account_id].balance_centavos = balance_centavos;
+        bank.num_accounts++;
+    }
+
+    fclose(file);
 
     return true;
 }
@@ -29,6 +63,10 @@ bool load_accounts(const char* filename) {
  * Read balance safely.
  */
 int get_balance(int account_id) {
+
+    if (!is_valid_account_id(account_id)) {
+        return 0;
+    }
 
     Account* acc = &bank.accounts[account_id];
 
@@ -46,6 +84,10 @@ int get_balance(int account_id) {
  */
 void deposit(int account_id, int amount_centavos) {
 
+    if (!is_valid_account_id(account_id)) {
+        return;
+    }
+
     Account* acc = &bank.accounts[account_id];
 
     pthread_rwlock_wrlock(&acc->lock);
@@ -59,6 +101,10 @@ void deposit(int account_id, int amount_centavos) {
  * Withdraw money safely.
  */
 bool withdraw(int account_id, int amount_centavos) {
+
+    if (!is_valid_account_id(account_id)) {
+        return false;
+    }
 
     Account* acc = &bank.accounts[account_id];
 
@@ -81,6 +127,14 @@ bool withdraw(int account_id, int amount_centavos) {
  */
 bool transfer(int from_id, int to_id, int amount_centavos) {
 
+    if (from_id == to_id) {
+        return is_valid_account_id(from_id);
+    }
+
+    if (!is_valid_account_id(from_id) || !is_valid_account_id(to_id)) {
+        return false;
+    }
+
     lock_accounts_ordered(from_id, to_id);
 
     Account* from_acc = &bank.accounts[from_id];
@@ -101,12 +155,28 @@ bool transfer(int from_id, int to_id, int amount_centavos) {
 
 void print_all_accounts(void) {
 
-    /* TODO */
+    for (int i = 0; i < MAX_ACCOUNTS; i++) {
+
+        if (!is_valid_account_id(i)) {
+            continue;
+        }
+
+        printf("Account %d: %d centavos\n",
+               i,
+               get_balance(i));
+    }
 }
 
 int total_bank_money(void) {
 
-    /* TODO */
+    int total = 0;
 
-    return 0;
+    for (int i = 0; i < MAX_ACCOUNTS; i++) {
+
+        if (is_valid_account_id(i)) {
+            total += get_balance(i);
+        }
+    }
+
+    return total;
 }

@@ -30,6 +30,9 @@ typedef struct {
 
 /* Global pool */
 extern BufferPool buffer_pool;
+extern unsigned long buffer_load_count;
+extern unsigned long buffer_unload_count;
+extern int buffer_current_occupancy;
 
 /* Initialization */
 void init_buffer_pool(BufferPool* pool);

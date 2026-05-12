@@ -1,6 +1,9 @@
 #include "buffer_pool.h"
 
 BufferPool buffer_pool;
+unsigned long buffer_load_count = 0;
+unsigned long buffer_unload_count = 0;
+int buffer_current_occupancy = 0;
 
 /*
  * Initialize pool.
@@ -41,6 +44,8 @@ void load_account(BufferPool* pool,
 
             pool->slots[i].in_use = true;
             pool->slots[i].account_id = account_id;
+            buffer_current_occupancy++;
+            buffer_load_count++;
 
             break;
         }
@@ -68,6 +73,8 @@ void unload_account(BufferPool* pool,
 
             pool->slots[i].in_use = false;
             pool->slots[i].account_id = -1;
+            buffer_current_occupancy--;
+            buffer_unload_count++;
 
             break;
         }
