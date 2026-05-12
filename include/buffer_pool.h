@@ -5,23 +5,22 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include "bank.h"
+
 #define BUFFER_POOL_SIZE 5
 
 /*
  * Buffer slot structure.
  */
-#include "bank.h"
 typedef struct {
     int account_id;
     Account* data;
-    char payload[256];
     bool in_use;
 } BufferSlot;
 
 /*
  * Buffer pool structure.
  */
-#include "bank.h"
 typedef struct {
     BufferSlot slots[BUFFER_POOL_SIZE];
 
@@ -37,6 +36,8 @@ extern BufferPool buffer_pool;
 extern unsigned long buffer_load_count;
 extern unsigned long buffer_unload_count;
 extern int buffer_current_occupancy;
+extern int buffer_peak_usage;
+extern unsigned long buffer_blocked_ops;
 
 /* Initialization */
 void init_buffer_pool(BufferPool* pool);
