@@ -1,6 +1,10 @@
 #ifndef BANK_H
 #define BANK_H
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <pthread.h>
 #include <stdbool.h>
 

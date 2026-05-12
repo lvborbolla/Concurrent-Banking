@@ -20,4 +20,7 @@ void* timer_thread(void* arg);
 /* Wait until target tick */
 void wait_until_tick(int target_tick);
 
+/* Snapshot current tick under tick_lock */
+int get_current_tick(void);
+
 #endif

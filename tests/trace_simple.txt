@@ -1,3 +1,11 @@
+# Banking transaction trace
+# Format: TxID  StartTick  Operation  AccountID  [Amount]  [TargetAccount]
+
+# Transaction 1: Simple deposit
 T1 0 DEPOSIT 10 10000
-T1 1 WITHDRAW 10 2000
-T1 2 BALANCE 10
+
+# Transaction 2: Withdrawal
+T2 1 WITHDRAW 10 2000
+
+# Transaction 3: Balance inquiry
+T3 2 BALANCE 10

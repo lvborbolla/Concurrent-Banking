@@ -25,6 +25,7 @@ typedef struct {
     int account_id;
     int amount_centavos;
     int target_account;
+    int start_tick;
 } Operation;
 
 /*
@@ -60,6 +61,9 @@ typedef struct {
 /* Global transaction array */
 extern Transaction transactions[MAX_TRANSACTIONS];
 extern int num_transactions;
+
+/* Current transaction id for the running thread (thread-local) */
+extern __thread int current_tx_id;
 
 /* Parse trace file */
 bool load_transactions(const char* filename);

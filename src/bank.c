@@ -22,7 +22,7 @@ void init_bank(void) {
 
     for (int i = 0; i < MAX_ACCOUNTS; i++) {
 
-        bank.accounts[i].account_id = -1;
+        bank.accounts[i].account_id = i;
         bank.accounts[i].balance_centavos = 0;
         pthread_rwlock_init(&bank.accounts[i].lock, NULL);
     }
@@ -39,10 +39,23 @@ bool load_accounts(const char* filename) {
         return false;
     }
 
+    char line[256];
     int account_id;
     int balance_centavos;
 
-    while (fscanf(file, "%d %d", &account_id, &balance_centavos) == 2) {
+    while (fgets(line, sizeof(line), file) != NULL) {
+
+        /* Skip blank lines and comment lines starting with '#' (possibly preceded by whitespace) */
+        char *p = line;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '#' || *p == '\n' || *p == '\0') {
+            continue;
+        }
+
+        if (sscanf(line, "%d %d", &account_id, &balance_centavos) != 2) {
+            fclose(file);
+            return false;
+        }
 
         if (account_id < 0 || account_id >= MAX_ACCOUNTS) {
             fclose(file);
@@ -93,6 +106,7 @@ void deposit(int account_id, int amount_centavos) {
     pthread_rwlock_wrlock(&acc->lock);
 
     acc->balance_centavos += amount_centavos;
+    printf("DEBUG: Account 10 = %d\n", bank.accounts[10].balance_centavos);
 
     pthread_rwlock_unlock(&acc->lock);
 }
@@ -157,13 +171,10 @@ void print_all_accounts(void) {
 
     for (int i = 0; i < MAX_ACCOUNTS; i++) {
 
-        if (!is_valid_account_id(i)) {
-            continue;
+        int balance = get_balance(i);
+        if (balance != 0) {
+            printf("Account %d: %d centavos\n", i, balance);
         }
-
-        printf("Account %d: %d centavos\n",
-               i,
-               get_balance(i));
     }
 }
 

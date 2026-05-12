@@ -1,14 +1,18 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "transaction.h"
 #include "timer.h"
 #include "bank.h"
 #include "buffer_pool.h"
+#include "utils.h"
 
 Transaction transactions[MAX_TRANSACTIONS];
 
 int num_transactions = 0;
+
+__thread int current_tx_id = -1;
 
 static Transaction* find_transaction(int tx_id) {
 
@@ -81,7 +85,15 @@ bool load_transactions(const char* filename) {
 
     while (fgets(line, sizeof(line), file) != NULL) {
 
-        if (line[0] == '\n' || line[0] == '\0') {
+        /* Strip trailing \r\n */
+        size_t len = strlen(line);
+        if (len > 0 && line[len-1] == '\n') line[--len] = '\0';
+        if (len > 0 && line[len-1] == '\r') line[--len] = '\0';
+
+        /* Skip blank lines and comment lines starting with '#' (possibly preceded by whitespace) */
+        char *p = line;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '#' || *p == '\n' || *p == '\0') {
             continue;
         }
 
@@ -135,6 +147,7 @@ bool load_transactions(const char* filename) {
             op->type = OP_DEPOSIT;
             op->account_id = account_id;
             op->amount_centavos = amount_centavos;
+            op->start_tick = start_tick;
             op->target_account = -1;
         } else if (strcmp(op_name, "WITHDRAW") == 0) {
             if (parsed < 5) {
@@ -145,6 +158,7 @@ bool load_transactions(const char* filename) {
             op->type = OP_WITHDRAW;
             op->account_id = account_id;
             op->amount_centavos = amount_centavos;
+            op->start_tick = start_tick;
             op->target_account = -1;
         } else if (strcmp(op_name, "TRANSFER") == 0) {
             int transfer_parsed = sscanf(line,
@@ -164,11 +178,13 @@ bool load_transactions(const char* filename) {
             op->type = OP_TRANSFER;
             op->account_id = account_id;
             op->amount_centavos = amount_centavos;
+            op->start_tick = start_tick;
             op->target_account = target_account;
         } else if (strcmp(op_name, "BALANCE") == 0) {
             op->type = OP_BALANCE;
             op->account_id = account_id;
             op->amount_centavos = 0;
+            op->start_tick = start_tick;
             op->target_account = -1;
         } else {
             fclose(file);
@@ -189,16 +205,60 @@ void* execute_transaction(void* arg) {
     Transaction* tx = (Transaction*)arg;
     bool loaded_accounts[MAX_ACCOUNTS] = { false };
 
-    wait_until_tick(tx->start_tick);
-
-    tx->actual_start = global_tick;
+    /* Set thread-local tx id for logging in lock manager */
+    current_tx_id = tx->tx_id;
 
     tx->status = TX_RUNNING;
-    tx->wait_ticks = tx->actual_start - tx->start_tick;
+    tx->wait_ticks = 0;
+
 
     for (int i = 0; i < tx->num_ops; i++) {
 
         Operation* op = &tx->ops[i];
+
+        /* Wait until this operation's scheduled start tick */
+        wait_until_tick(op->start_tick);
+
+        /* Small yield to let completion messages print first in this tick */
+        usleep(100);
+
+        /* Record actual start time for transaction on first executed op */
+        if (tx->actual_start < 0) {
+            tx->actual_start = get_current_tick();
+            /* wait time is the delay until the first executable tick */
+            tx->wait_ticks = tx->actual_start - tx->start_tick;
+        }
+
+        /* Print operation started under current tick */
+        switch (op->type) {
+            case OP_DEPOSIT:
+                print_log("  T%d started: DEPOSIT account %d amount PHP %d.%02d\n",
+                          tx->tx_id,
+                          op->account_id,
+                          op->amount_centavos / 100,
+                          op->amount_centavos % 100);
+                break;
+            case OP_WITHDRAW:
+                print_log("  T%d started: WITHDRAW account %d amount PHP %d.%02d\n",
+                          tx->tx_id,
+                          op->account_id,
+                          op->amount_centavos / 100,
+                          op->amount_centavos % 100);
+                break;
+            case OP_TRANSFER:
+                print_log("  T%d started: TRANSFER from %d to %d amount PHP %d.%02d\n",
+                          tx->tx_id,
+                          op->account_id,
+                          op->target_account,
+                          op->amount_centavos / 100,
+                          op->amount_centavos % 100);
+                break;
+            case OP_BALANCE:
+                print_log("  T%d started: BALANCE account %d\n",
+                          tx->tx_id,
+                          op->account_id);
+                break;
+        }
 
         load_account_once(loaded_accounts, op->account_id);
 
@@ -211,6 +271,8 @@ void* execute_transaction(void* arg) {
             case OP_DEPOSIT:
                 deposit(op->account_id,
                         op->amount_centavos);
+                wait_until_tick(op->start_tick + 1);
+                print_log("  T%d completed: DEPOSIT successful\n", tx->tx_id);
                 break;
 
             case OP_WITHDRAW:
@@ -219,8 +281,13 @@ void* execute_transaction(void* arg) {
                               op->amount_centavos)) {
 
                     tx->status = TX_ABORTED;
+                    tx->actual_end = get_current_tick();
+                    print_log("  T%d completed: WITHDRAW aborted\n", tx->tx_id);
                     return NULL;
                 }
+
+                wait_until_tick(op->start_tick + 1);
+                print_log("  T%d completed: WITHDRAW successful\n", tx->tx_id);
 
                 break;
 
@@ -231,8 +298,13 @@ void* execute_transaction(void* arg) {
                               op->amount_centavos)) {
 
                     tx->status = TX_ABORTED;
+                    tx->actual_end = get_current_tick();
+                    print_log("  T%d completed: TRANSFER aborted\n", tx->tx_id);
                     return NULL;
                 }
+
+                wait_until_tick(op->start_tick + 1);
+                print_log("  T%d completed: TRANSFER successful\n", tx->tx_id);
 
                 break;
 
@@ -240,18 +312,21 @@ void* execute_transaction(void* arg) {
 
                 int balance = get_balance(op->account_id);
 
-                printf("T%d BALANCE: %d\n",
+                printf("T%d: Account %d balance = PHP %d.%02d\n",
                        tx->tx_id,
-                       balance);
+                       op->account_id,
+                       balance / 100,
+                       balance % 100);
 
                 break;
             }
         }
+
+        /* End time is the tick where this operation completed */
+        tx->actual_end = get_current_tick();
     }
 
     unload_loaded_accounts(loaded_accounts);
-
-    tx->actual_end = global_tick;
 
     tx->status = TX_COMMITTED;
 

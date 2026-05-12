@@ -28,17 +28,17 @@ clean:
 	rm -f src/*.o
 
 test: all
-	@echo "===== TEST 1: SIMPLE ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --deadlock=prevention
+	@echo "===== TEST 1: SIMPLE (no accounts file) ====="
+	./bankdb
 
-	@echo "===== TEST 2: READERS ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --deadlock=prevention
+	@echo "===== TEST 2: READERS (with accounts) ====="
+	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt
 
-	@echo "===== TEST 3: DEADLOCK ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt --deadlock=prevention
+	@echo "===== TEST 3: DEADLOCK (with accounts) ====="
+	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt
 
-	@echo "===== TEST 4: ABORT ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort.txt --deadlock=prevention
+	@echo "===== TEST 4: ABORT (no accounts file) ====="
+	./bankdb --trace=tests/trace_abort.txt
 
-	@echo "===== TEST 5: BUFFER ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt --deadlock=prevention
+	@echo "===== TEST 5: BUFFER (with accounts) ====="
+	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt
