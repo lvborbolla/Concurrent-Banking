@@ -25,6 +25,7 @@ typedef struct {
     int account_id;
     int amount_centavos;
     int target_account;
+    int start_tick;
 } Operation;
 
 /*

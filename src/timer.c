@@ -24,6 +24,11 @@ void* timer_thread(void* arg) {
 
         pthread_mutex_lock(&tick_lock);
 
+        if (!simulation_running) {
+            pthread_mutex_unlock(&tick_lock);
+            break;
+        }
+
         global_tick++;
 
         /* Print tick header for execution log */
@@ -32,6 +37,9 @@ void* timer_thread(void* arg) {
         pthread_cond_broadcast(&tick_changed);
 
         pthread_mutex_unlock(&tick_lock);
+
+        /* Small delay to allow completion messages to print before start messages in same tick */
+        usleep(1000);
     }
 
     return NULL;
@@ -51,4 +59,18 @@ void wait_until_tick(int target_tick) {
     }
 
     pthread_mutex_unlock(&tick_lock);
+}
+
+/*
+ * Snapshot the current tick under the timer lock.
+ */
+int get_current_tick(void) {
+
+    pthread_mutex_lock(&tick_lock);
+
+    int current_tick = global_tick;
+
+    pthread_mutex_unlock(&tick_lock);
+
+    return current_tick;
 }

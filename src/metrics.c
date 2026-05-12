@@ -23,7 +23,7 @@ void print_metrics(void) {
     int aborted = 0;
     long total_wait = 0;
     long total_duration = 0;
-    int last_tick = global_tick;
+    int last_tick = get_current_tick();
 
     for (int i = 0; i < num_transactions; i++) {
 
@@ -54,7 +54,8 @@ void print_metrics(void) {
 
     for (int i = 0; i < num_transactions; i++) {
         Transaction* tx = &transactions[i];
-        print_log("T%d   |%6d     |%8d     |%4d |%9d   | %s\n",
+        /* Align columns to match expected spacing */
+        print_log("T%-4d|%8d   |%11d |%4d |%9d   | %s\n",
                   tx->tx_id,
                   tx->start_tick,
                   tx->actual_start,

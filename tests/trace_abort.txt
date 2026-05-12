@@ -1,1 +1,4 @@
+# Banking transaction trace
+# Abort scenario: insufficient funds
+
 T1 0 WITHDRAW 10 15000

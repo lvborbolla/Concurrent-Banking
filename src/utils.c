@@ -17,9 +17,15 @@ pthread_mutex_t print_lock = PTHREAD_MUTEX_INITIALIZER;
 static void print_usage(const char* program_name) {
 
     fprintf(stderr,
-            "Usage: %s --accounts=FILE --trace=FILE --deadlock=prevention|detection --tick-ms=MS [--verbose]\n",
+            "Usage: %s [OPTIONS]\n\n",
             program_name);
-    fprintf(stderr, "Note: Only 'prevention' deadlock strategy is implemented; if 'detection' is supplied, prevention will be used.\n");
+    fprintf(stderr, "OPTIONS:\n");
+    fprintf(stderr, "  --accounts=FILE              Initial account balances (optional)\n");
+    fprintf(stderr, "  --trace=FILE                 Transaction workload (default: tests/trace_simple.txt)\n");
+    fprintf(stderr, "  --deadlock=STR               Deadlock strategy: prevention|detection (default: prevention)\n");
+    fprintf(stderr, "  --tick-ms=N                  Milliseconds per tick (default: 100)\n");
+    fprintf(stderr, "  --verbose                    Print detailed operation logs\n");
+    fprintf(stderr, "\nNote: Only 'prevention' deadlock strategy is implemented.\n");
 }
 
 /*
@@ -28,7 +34,7 @@ static void print_usage(const char* program_name) {
 bool parse_arguments(int argc, char* argv[]) {
 
     accounts_file = NULL;
-    trace_file = NULL;
+    trace_file = "tests/trace_simple.txt";
     deadlock_strategy = "prevention";
     tick_interval_ms = 100;
     verbose = false;
@@ -64,11 +70,6 @@ bool parse_arguments(int argc, char* argv[]) {
             print_usage(argv[0]);
             return false;
         }
-    }
-
-    if (accounts_file == NULL || trace_file == NULL) {
-        print_usage(argv[0]);
-        return false;
     }
 
     return true;
