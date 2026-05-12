@@ -1,6 +1,7 @@
 #include <unistd.h>
 
 #include "timer.h"
+#include "utils.h"
 
 volatile int global_tick = 0;
 

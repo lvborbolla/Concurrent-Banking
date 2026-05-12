@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <pthread.h>
 #include "utils.h"
 #include <stdarg.h>
 

@@ -4,6 +4,12 @@
 #include "buffer_pool.h"
 #include "transaction.h"
 #include "metrics.h"
+#include "timer.h"
+#include "utils.h"
+
+/* Ensure buffer pool stats symbols are available */
+extern int buffer_peak_usage;
+extern unsigned long buffer_blocked_ops;
 
 /*
  * Print transaction metrics.
