@@ -1,2 +1,5 @@
+# Deadlock test: Circular transfer pattern (prevented by ordered locking)
+# Without ordered locking: T1 locks A then waits for B, T2 locks B then waits for A = DEADLOCK
+# With ordered locking: Both follow A < B ordering = NO DEADLOCK
 T1 0 TRANSFER 10 20 5000
-T2 0 TRANSFER 20 10 3000
+T2 1 TRANSFER 20 10 3000

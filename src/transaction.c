@@ -232,31 +232,39 @@ void* execute_transaction(void* arg) {
         /* Print operation started under current tick */
         switch (op->type) {
             case OP_DEPOSIT:
-                print_log("  T%d started: DEPOSIT account %d amount PHP %d.%02d\n",
-                          tx->tx_id,
-                          op->account_id,
-                          op->amount_centavos / 100,
-                          op->amount_centavos % 100);
+                if (verbose) {
+                    print_log("  T%d started: DEPOSIT account %d amount PHP %d.%02d\n",
+                              tx->tx_id,
+                              op->account_id,
+                              op->amount_centavos / 100,
+                              op->amount_centavos % 100);
+                }
                 break;
             case OP_WITHDRAW:
-                print_log("  T%d started: WITHDRAW account %d amount PHP %d.%02d\n",
-                          tx->tx_id,
-                          op->account_id,
-                          op->amount_centavos / 100,
-                          op->amount_centavos % 100);
+                if (verbose) {
+                    print_log("  T%d started: WITHDRAW account %d amount PHP %d.%02d\n",
+                              tx->tx_id,
+                              op->account_id,
+                              op->amount_centavos / 100,
+                              op->amount_centavos % 100);
+                }
                 break;
             case OP_TRANSFER:
-                print_log("  T%d started: TRANSFER from %d to %d amount PHP %d.%02d\n",
-                          tx->tx_id,
-                          op->account_id,
-                          op->target_account,
-                          op->amount_centavos / 100,
-                          op->amount_centavos % 100);
+                if (verbose) {
+                    print_log("  T%d started: TRANSFER from %d to %d amount PHP %d.%02d\n",
+                              tx->tx_id,
+                              op->account_id,
+                              op->target_account,
+                              op->amount_centavos / 100,
+                              op->amount_centavos % 100);
+                }
                 break;
             case OP_BALANCE:
-                print_log("  T%d started: BALANCE account %d\n",
-                          tx->tx_id,
-                          op->account_id);
+                if (verbose) {
+                    print_log("  T%d started: BALANCE account %d\n",
+                              tx->tx_id,
+                              op->account_id);
+                }
                 break;
         }
 
@@ -272,7 +280,9 @@ void* execute_transaction(void* arg) {
                 deposit(op->account_id,
                         op->amount_centavos);
                 wait_until_tick(op->start_tick + 1);
-                print_log("  T%d completed: DEPOSIT successful\n", tx->tx_id);
+                if (verbose) {
+                    print_log("  T%d completed: DEPOSIT successful\n", tx->tx_id);
+                }
                 break;
 
             case OP_WITHDRAW:
@@ -282,12 +292,16 @@ void* execute_transaction(void* arg) {
 
                     tx->status = TX_ABORTED;
                     tx->actual_end = get_current_tick();
-                    print_log("  T%d completed: WITHDRAW aborted\n", tx->tx_id);
+                    if (verbose) {
+                        print_log("  T%d completed: WITHDRAW aborted\n", tx->tx_id);
+                    }
                     return NULL;
                 }
 
                 wait_until_tick(op->start_tick + 1);
-                print_log("  T%d completed: WITHDRAW successful\n", tx->tx_id);
+                if (verbose) {
+                    print_log("  T%d completed: WITHDRAW successful\n", tx->tx_id);
+                }
 
                 break;
 
@@ -299,12 +313,16 @@ void* execute_transaction(void* arg) {
 
                     tx->status = TX_ABORTED;
                     tx->actual_end = get_current_tick();
-                    print_log("  T%d completed: TRANSFER aborted\n", tx->tx_id);
+                    if (verbose) {
+                        print_log("  T%d completed: TRANSFER aborted\n", tx->tx_id);
+                    }
                     return NULL;
                 }
 
                 wait_until_tick(op->start_tick + 1);
-                print_log("  T%d completed: TRANSFER successful\n", tx->tx_id);
+                if (verbose) {
+                    print_log("  T%d completed: TRANSFER successful\n", tx->tx_id);
+                }
 
                 break;
 

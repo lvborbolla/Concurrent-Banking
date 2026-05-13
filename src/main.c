@@ -37,8 +37,10 @@ int main(int argc, char* argv[]) {
     pthread_t tx_threads[MAX_TRANSACTIONS];
 
     /* Print initial Tick 0 before starting timer */
-    print_log("Timer thread started (tick interval: %dms)\n\n", tick_interval_ms);
-    print_log("Tick 0:\n");
+    if (verbose) {
+        print_log("Timer thread started (tick interval: %dms)\n\n", tick_interval_ms);
+        print_log("Tick 0:\n");
+    }
 
     if (pthread_create(&timer, NULL, timer_thread, &tick_interval_ms) != 0) {
         fprintf(stderr, "Failed to start timer thread\n");

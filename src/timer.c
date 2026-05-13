@@ -32,7 +32,9 @@ void* timer_thread(void* arg) {
         global_tick++;
 
         /* Print tick header for execution log */
-        print_log("\nTick %d:\n", global_tick);
+        if (verbose) {
+            print_log("\nTick %d:\n", global_tick);
+        }
 
         pthread_cond_broadcast(&tick_changed);
 

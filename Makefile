@@ -32,13 +32,13 @@ test: all
 	./bankdb
 
 	@echo "===== TEST 2: READERS (with accounts) ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt
+	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --verbose
 
 	@echo "===== TEST 3: DEADLOCK (with accounts) ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt
+	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt --verbose
 
 	@echo "===== TEST 4: ABORT (no accounts file) ====="
-	./bankdb --trace=tests/trace_abort.txt
+	./bankdb --trace=tests/trace_abort.txt --verbose
 
 	@echo "===== TEST 5: BUFFER (with accounts) ====="
-	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt
+	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt --verbose

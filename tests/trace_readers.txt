@@ -1,4 +1,5 @@
+# Readers test: Multiple concurrent balance queries (reader locks)
 T1 0 BALANCE 10
-T2 0 BALANCE 10
-T3 0 BALANCE 10
-T4 0 BALANCE 10
+T2 1 BALANCE 10
+T3 2 BALANCE 10
+T4 3 BALANCE 10
