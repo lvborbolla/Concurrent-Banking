@@ -29,7 +29,7 @@ clean:
 
 test: all
 	@echo "===== TEST 1: SIMPLE (no accounts file) ====="
-	./bankdb
+	./bankdb --verbose
 
 	@echo "===== TEST 2: READERS (with accounts) ====="
 	./bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --verbose
