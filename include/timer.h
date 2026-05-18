@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 
 /* Global simulation clock */
 extern volatile int global_tick;
@@ -12,7 +13,7 @@ extern pthread_mutex_t tick_lock;
 extern pthread_cond_t tick_changed;
 
 /* Control flags */
-extern bool simulation_running;
+extern atomic_bool simulation_running;
 
 /* Timer thread */
 void* timer_thread(void* arg);

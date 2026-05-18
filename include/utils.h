@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <pthread.h>
 #include <stdbool.h>
 
 extern const char* accounts_file;
@@ -15,8 +16,5 @@ void print_log(const char* format, ...);
 
 /* CLI parsing */
 bool parse_arguments(int argc, char* argv[]);
-
-/* Logging */
-void log_message(const char* format, ...);
 
 #endif

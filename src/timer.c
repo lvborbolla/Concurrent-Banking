@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdatomic.h>
 
 #include "timer.h"
 #include "utils.h"
@@ -9,7 +10,7 @@ pthread_mutex_t tick_lock = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t tick_changed = PTHREAD_COND_INITIALIZER;
 
-bool simulation_running = true;
+atomic_bool simulation_running = true;
 
 /*
  * Global timer thread.
@@ -18,13 +19,13 @@ void* timer_thread(void* arg) {
 
     int tick_ms = *((int*)arg);
 
-    while (simulation_running) {
+    while (atomic_load(&simulation_running)) {
 
         usleep(tick_ms * 1000);
 
         pthread_mutex_lock(&tick_lock);
 
-        if (!simulation_running) {
+        if (!atomic_load(&simulation_running)) {
             pthread_mutex_unlock(&tick_lock);
             break;
         }

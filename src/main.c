@@ -33,6 +33,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    int initial_total = total_bank_money();
+
     pthread_t timer;
     pthread_t tx_threads[MAX_TRANSACTIONS];
 
@@ -62,6 +64,14 @@ int main(int argc, char* argv[]) {
 
     simulation_running = false;
     pthread_join(timer, NULL);
+
+    int final_total = total_bank_money();
+    long net_delta = get_total_net_delta();
+    bool conservation_passed = (final_total == initial_total + net_delta);
+
+    print_log("Initial total: %d\n", initial_total);
+    print_log("Final total: %d\n", final_total);
+    print_log("Conservation check: %s\n", conservation_passed ? "PASSED" : "FAILED");
 
     print_metrics();
     print_buffer_stats();

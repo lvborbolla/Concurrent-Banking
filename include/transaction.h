@@ -71,4 +71,6 @@ bool load_transactions(const char* filename);
 /* Thread routine */
 void* execute_transaction(void* arg);
 
+long get_total_net_delta(void);
+
 #endif

@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -5,7 +7,6 @@
 
 #include <pthread.h>
 #include "utils.h"
-#include <stdarg.h>
 
 const char* accounts_file = NULL;
 const char* trace_file = NULL;
@@ -48,10 +49,13 @@ bool parse_arguments(int argc, char* argv[]) {
         } else if (strncmp(argv[i], "--tick-ms=", 10) == 0 || strncmp(argv[i], "--tick=", 7) == 0) {
             /* Accept both --tick-ms= and legacy --tick= */
             const char *val = (strncmp(argv[i], "--tick-ms=", 10) == 0) ? argv[i] + 10 : argv[i] + 7;
-            tick_interval_ms = atoi(val);
-            if (tick_interval_ms <= 0) {
+            char *endptr = NULL;
+            errno = 0;
+            long parsed_tick = strtol(val, &endptr, 10);
+            if (errno != 0 || endptr == val || *endptr != '\0' || parsed_tick <= 0 || parsed_tick > INT_MAX) {
                 return false;
             }
+            tick_interval_ms = (int)parsed_tick;
         } else if (strcmp(argv[i], "--verbose") == 0) {
             verbose = true;
         } else if (strncmp(argv[i], "--deadlock=", 11) == 0) {
@@ -73,24 +77,6 @@ bool parse_arguments(int argc, char* argv[]) {
     }
 
     return true;
-}
-
-/*
- * Thread-safe logger.
- */
-void log_message(const char* format, ...) {
-
-    if (!verbose) {
-        return;
-    }
-
-    va_list args;
-
-    va_start(args, format);
-
-    vprintf(format, args);
-
-    va_end(args);
 }
 
 /* Thread-safe printing used for execution log */

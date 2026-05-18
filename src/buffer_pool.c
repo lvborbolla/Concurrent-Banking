@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "buffer_pool.h"
 #include "bank.h"
 
@@ -13,16 +16,25 @@ unsigned long buffer_blocked_ops = 0;
  */
 void init_buffer_pool(BufferPool* pool) {
 
-    sem_init(&pool->empty_slots,
-             0,
-             BUFFER_POOL_SIZE);
+    if (sem_init(&pool->empty_slots,
+                 0,
+                 BUFFER_POOL_SIZE) != 0) {
+        perror("sem_init(empty_slots)");
+        exit(EXIT_FAILURE);
+    }
 
-    sem_init(&pool->full_slots,
-             0,
-             0);
+    if (sem_init(&pool->full_slots,
+                 0,
+                 0) != 0) {
+        perror("sem_init(full_slots)");
+        exit(EXIT_FAILURE);
+    }
 
-    pthread_mutex_init(&pool->pool_lock,
-                       NULL);
+    if (pthread_mutex_init(&pool->pool_lock,
+                           NULL) != 0) {
+        perror("pthread_mutex_init(pool_lock)");
+        exit(EXIT_FAILURE);
+    }
 
     for (int i = 0; i < BUFFER_POOL_SIZE; i++) {
 

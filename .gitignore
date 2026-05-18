@@ -1,0 +1,3 @@
+# Ignore built binaries and object files
+bankdb
+*.o

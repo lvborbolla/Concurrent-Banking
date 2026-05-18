@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "bank.h"
 #include "lock_mgr.h"
@@ -18,13 +19,19 @@ void init_bank(void) {
 
     bank.num_accounts = 0;
 
-    pthread_mutex_init(&bank.bank_lock, NULL);
+    if (pthread_mutex_init(&bank.bank_lock, NULL) != 0) {
+        perror("pthread_mutex_init(bank_lock)");
+        exit(EXIT_FAILURE);
+    }
 
     for (int i = 0; i < MAX_ACCOUNTS; i++) {
 
         bank.accounts[i].account_id = i;
         bank.accounts[i].balance_centavos = 0;
-        pthread_rwlock_init(&bank.accounts[i].lock, NULL);
+        if (pthread_rwlock_init(&bank.accounts[i].lock, NULL) != 0) {
+            perror("pthread_rwlock_init(account lock)");
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
@@ -106,7 +113,6 @@ void deposit(int account_id, int amount_centavos) {
     pthread_rwlock_wrlock(&acc->lock);
 
     acc->balance_centavos += amount_centavos;
-    printf("DEBUG: Account 10 = %d\n", bank.accounts[10].balance_centavos);
 
     pthread_rwlock_unlock(&acc->lock);
 }

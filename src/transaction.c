@@ -14,6 +14,22 @@ int num_transactions = 0;
 
 __thread int current_tx_id = -1;
 
+static long total_net_delta_centavos = 0;
+static pthread_mutex_t net_delta_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void record_net_delta(int change_centavos) {
+    pthread_mutex_lock(&net_delta_mutex);
+    total_net_delta_centavos += change_centavos;
+    pthread_mutex_unlock(&net_delta_mutex);
+}
+
+long get_total_net_delta(void) {
+    pthread_mutex_lock(&net_delta_mutex);
+    long delta = total_net_delta_centavos;
+    pthread_mutex_unlock(&net_delta_mutex);
+    return delta;
+}
+
 static Transaction* find_transaction(int tx_id) {
 
     for (int i = 0; i < num_transactions; i++) {
@@ -279,6 +295,7 @@ void* execute_transaction(void* arg) {
             case OP_DEPOSIT:
                 deposit(op->account_id,
                         op->amount_centavos);
+                record_net_delta(op->amount_centavos);
                 wait_until_tick(op->start_tick + 1);
                 if (verbose) {
                     print_log("  T%d completed: DEPOSIT successful\n", tx->tx_id);
@@ -295,9 +312,11 @@ void* execute_transaction(void* arg) {
                     if (verbose) {
                         print_log("  T%d completed: WITHDRAW aborted\n", tx->tx_id);
                     }
+                    unload_loaded_accounts(loaded_accounts);
                     return NULL;
                 }
 
+                record_net_delta(-op->amount_centavos);
                 wait_until_tick(op->start_tick + 1);
                 if (verbose) {
                     print_log("  T%d completed: WITHDRAW successful\n", tx->tx_id);
@@ -316,6 +335,7 @@ void* execute_transaction(void* arg) {
                     if (verbose) {
                         print_log("  T%d completed: TRANSFER aborted\n", tx->tx_id);
                     }
+                    unload_loaded_accounts(loaded_accounts);
                     return NULL;
                 }
 
@@ -330,11 +350,11 @@ void* execute_transaction(void* arg) {
 
                 int balance = get_balance(op->account_id);
 
-                printf("T%d: Account %d balance = PHP %d.%02d\n",
-                       tx->tx_id,
-                       op->account_id,
-                       balance / 100,
-                       balance % 100);
+                print_log("T%d: Account %d balance = PHP %d.%02d\n",
+                          tx->tx_id,
+                          op->account_id,
+                          balance / 100,
+                          balance % 100);
 
                 break;
             }

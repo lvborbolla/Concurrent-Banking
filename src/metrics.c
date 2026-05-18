@@ -7,10 +7,6 @@
 #include "timer.h"
 #include "utils.h"
 
-/* Ensure buffer pool stats symbols are available */
-extern int buffer_peak_usage;
-extern unsigned long buffer_blocked_ops;
-
 /*
  * Print transaction metrics.
  */
@@ -45,7 +41,6 @@ void print_metrics(void) {
     print_log("Committed: %d\n", committed);
     print_log("Aborted: %d\n", aborted);
     print_log("Total ticks: %d\n", last_tick + 1);
-    print_log("ThreadSanitizer warnings: 0\n");
 
     /* Detailed metrics table */
     print_log("\nDetailed Metrics\n=== Transaction Performance Metrics ===\n");
