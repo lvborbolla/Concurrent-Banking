@@ -1,7 +1,8 @@
 CC = gcc
 
 CFLAGS = -Wall -Wextra -O2 -pthread
-DEBUG_FLAGS = -Wall -Wextra -g -fsanitize=thread -pthread
+DEBUG_FLAGS = -Wall -Wextra -g -fsanitize=thread -fno-pie -no-pie -pthread
+TSAN_RUNNER = setarch x86_64 -R
 
 INCLUDES = -Iinclude
 
@@ -15,15 +16,19 @@ SRC = src/main.c \
       src/utils.c
 
 TARGET = bankdb
+DEBUG_TARGET = .bankdb_tsan
 
 all:
 	$(CC) $(CFLAGS) $(INCLUDES) $(SRC) -o $(TARGET)
 
 debug:
-	$(CC) $(DEBUG_FLAGS) $(INCLUDES) $(SRC) -o $(TARGET)
+	$(CC) $(DEBUG_FLAGS) $(INCLUDES) $(SRC) -o $(DEBUG_TARGET)
+	@printf '%s\n' '#!/bin/sh' 'exec $(TSAN_RUNNER) "$(CURDIR)/$(DEBUG_TARGET)" "$$@"' > $(TARGET)
+	@chmod +x $(TARGET)
 
 clean:
 	rm -f $(TARGET)
+	rm -f $(DEBUG_TARGET)
 	rm -f *.o
 	rm -f src/*.o
 

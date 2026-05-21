@@ -1,0 +1,44 @@
+=== Banking System Execution Log ===
+Timer thread started (tick interval: 100ms)
+
+Tick 0:
+  T1 started: TRANSFER from 10 to 20 amount PHP 50.00
+  T1 acquired lock on account 10
+  T1 acquired lock on account 20
+  T2 started: TRANSFER from 20 to 10 amount PHP 30.00
+  T2 acquired lock on account 10
+  T2 acquired lock on account 20
+
+Tick 1:
+  T1 completed: TRANSFER successful
+  T2 completed: TRANSFER successful
+Initial total: 115000
+Final total: 115000
+Conservation check: PASSED
+
+=== Summary ===
+Total transactions: 2
+Committed: 2
+Aborted: 0
+Total ticks: 2
+
+Detailed Metrics
+=== Transaction Performance Metrics ===
+TxID | StartTick | ActualStart | End | WaitTicks | Status
+-----|-----------|-------------|-----|-----------|----------
+T1   |       0   |          0 |   1 |        0   | COMMITTED
+T2   |       0   |          0 |   1 |        0   | COMMITTED
+
+Average wait time: 0.0 ticks
+Throughput: 2 transactions / 2 ticks = 1.00 tx/tick
+
+=== Buffer Pool Report ===
+Pool size: 5 slots
+Total loads: 4
+Total unloads: 4
+Peak usage: 4 slots
+Blocked operations (pool full): 0
+Account 0: 10000 centavos
+Account 1: 25000 centavos
+Account 10: 48000 centavos
+Account 20: 32000 centavos
